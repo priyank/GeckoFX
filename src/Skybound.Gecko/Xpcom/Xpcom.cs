@@ -74,6 +74,40 @@ namespace Skybound.Gecko
 		public static extern void Free(IntPtr ptr);
 		#endregion
 
+        #region Pre Load XULRunner Library
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr LoadLibraryEx(string dllFilePath, IntPtr hFile, uint dwFlags);
+
+        [DllImport("kernel32.dll")]
+        public extern static bool FreeLibrary(IntPtr dllPointer);
+
+        //static uint LOAD_LIBRARY_AS_DATAFILE = 0x00000002;
+        //static uint LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE = 0x00000040;
+        static uint LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008;
+
+        public static IntPtr LoadWin32Library(string dllFilePath)
+        {
+            try
+            {
+                System.IntPtr moduleHandle = LoadLibraryEx(dllFilePath, IntPtr.Zero, LOAD_WITH_ALTERED_SEARCH_PATH);
+                if (moduleHandle == IntPtr.Zero)
+                {
+                    // I'm getting last dll error
+                    int errorCode = Marshal.GetLastWin32Error();
+                    throw new ApplicationException(string.Format("There was an error during dll loading : {0}, error - {1}", 
+                                                       dllFilePath, 
+                                                       errorCode));
+                }
+
+                return moduleHandle;
+            }
+            catch (Exception exc)
+            {
+                throw new Exception(String.Format("Couldn't load library {0}{1}{2}", dllFilePath, Environment.NewLine, exc.Message), exc);
+            }
+        }
+        #endregion
+        
         // gecko version encoded as 2 digits (00-99) for every version part
 	    public const long DefaultGeckoVersion = 0x01080000; // 1.8.0.0
 
@@ -97,8 +131,8 @@ namespace Skybound.Gecko
 	            return geckoAppInfo;
 	        }
 	    }
-
-	    /// <summary>
+        
+        /// <summary>
 		/// Initializes XPCOM using the current directory as the XPCOM directory.
 		/// </summary>
 		public static void Initialize()
@@ -140,10 +174,35 @@ namespace Skybound.Gecko
                             continue;
 
                         gai = appInfo;
-                        Initialize(gai);
-                        return;
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "mozcrt19.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "AccessibleMarshal.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "nspr4.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "plc4.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "plds4.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "nssutil3.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "nss3.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "ssl3.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "smime3.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "js3250.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "sqlite3.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "softokn3.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "freebl3.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "nssdbm3.dll")) != IntPtr.Zero)
+                        if (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "nssckbi.dll")) != IntPtr.Zero)
+                        {
+                            bool bLoad = false;
+                            if (File.Exists(Path.Combine(appInfo.GeckoPath, "xul.dll")))
+                              bLoad = (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "xul.dll")) != IntPtr.Zero);
+                            else if (File.Exists(Path.Combine(appInfo.GeckoPath, "xpcom_core.dll")))
+                              bLoad = (LoadWin32Library(Path.Combine(appInfo.GeckoPath, "xpcom_core.dll")) != IntPtr.Zero);
+                            if (bLoad && LoadWin32Library(Path.Combine(appInfo.GeckoPath, "xpcom.dll")) != IntPtr.Zero)
+                            {
+                                Initialize(gai);
+                                return;
+                            }
+                        }
                     }
-                throw new Exception(String.Format("Please install Mozilla Firefox 3.5 or download xulrunner from:{0}http://releases.mozilla.org/pub/mozilla.org/xulrunner/releases/ {0}and unzip into the \"{1}\" application directory.",
+                throw new Exception(String.Format("Please install Mozilla Firefox 3.6 or download xulrunner from:{0}http://releases.mozilla.org/pub/mozilla.org/xulrunner/releases/ {0}and unzip into the \"{1}\" application directory.",
                                         Environment.NewLine,
                                         Application.ProductName));
             }
